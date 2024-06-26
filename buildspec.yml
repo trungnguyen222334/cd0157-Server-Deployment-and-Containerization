@@ -42,7 +42,7 @@ phases:
         - python -m pytest test_main.py
   build:
     commands:
-      - docker build --tag $REPOSITORY_URI:$TAG .
+      - docker build --tag 851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api:latest .
 
   post_build:
     commands:
