@@ -50,7 +50,7 @@ phases:
       - echo flask-api
       - echo arn:aws:iam::851725552373:role/service-role/flask-role
       - aws eks update-kubeconfig --name flask-api --role-arn arn:aws:iam::851725552373:role/service-role/flask-role
-      - kubectl apply -f --overwrite simple_jwt_api.yml
+      - kubectl apply -f simple_jwt_api.yml
       - printf '[{"name":"simple_jwt_api","imageUri":"%s"}]' 851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api:latest > build.json
 artifacts:
   files: build.json
