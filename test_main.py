@@ -1,40 +1,51 @@
-'''
-Tests for jwt flask app.
-'''
 import os
 import json
 import pytest
-
-import main
+from main import APP
 
 SECRET = 'TestSecret'
-TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1NjEzMDY3OTAsIm5iZiI6MTU2MDA5NzE5MCwiZW1haWwiOiJ3b2xmQHRoZWRvb3IuY29tIn0.IpM4VMnqIgOoQeJxUbLT-cRcAjK41jronkVrqRLFmmk'
 EMAIL = 'wolf@thedoor.com'
 PASSWORD = 'huff-puff'
 
 @pytest.fixture
 def client():
     os.environ['JWT_SECRET'] = SECRET
-    main.APP.config['TESTING'] = True
-    client = main.APP.test_client()
+    APP.config['TESTING'] = True
+    client = APP.test_client()
 
     yield client
-
-
 
 def test_health(client):
     response = client.get('/')
     assert response.status_code == 200
-    assert response.json == 'Healthy'
+    assert response.json == "Healthy"
 
 
 def test_auth(client):
-    body = {'email': EMAIL,
-            'password': PASSWORD}
-    response = client.post('/auth', 
-                           data=json.dumps(body),
-                           content_type='application/json')
+    body = {'email': EMAIL, 'password': PASSWORD}
+    response = client.post('/auth', data=json.dumps(body), content_type='application/json')
 
     assert response.status_code == 200
-    token = response.json['token']
-    assert token is not None
+    assert 'token' in response.json
+
+def test_auth_missing_credentials(client):
+    body = {'email': EMAIL}
+    response = client.post('/auth', data=json.dumps(body), content_type='application/json')
+
+    assert response.status_code == 400
+    assert 'message' in response.json
+
+def test_decode_jwt(client):
+    token = _get_token(client)
+    headers = {'Authorization': f'Bearer {token}'}
+    response = client.get('/contents', headers=headers)
+
+    assert response.status_code == 200
+    assert 'email' in response.json
+    assert 'exp' in response.json
+    assert 'nbf' in response.json
+
+def _get_token(client):
+    body = {'email': EMAIL, 'password': PASSWORD}
+    response = client.post('/auth', data=json.dumps(body), content_type='application/json')
+    return response.json['token']

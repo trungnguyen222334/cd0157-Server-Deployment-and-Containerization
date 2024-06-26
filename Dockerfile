@@ -11,7 +11,7 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Define an entrypoint which will run the main app using the Gunicorn WSGI server.
-ENTRYPOINT ["gunicorn", "-b", ":5000", "main:APP"]
+ENTRYPOINT ["gunicorn", "-b", ":8080", "main:APP"]
 
-EXPOSE 5000
+EXPOSE 8080
 CMD ["flask", "run"]
