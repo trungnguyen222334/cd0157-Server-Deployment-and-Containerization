@@ -5,9 +5,9 @@ phases:
     runtime-versions:
       python: 3.7
     commands:
-      - echo 'Installing Docker'
-      - apt-get update
-      - apt-get install -y docker.io
+      - echo 'Installing Docker and necessary tools'
+      - yum update -y
+      - amazon-linux-extras install docker -y
       - service docker start
       - docker --version
       - echo 'Docker installed and running.'
@@ -26,15 +26,14 @@ phases:
       - export KUBECONFIG=$HOME/.kube/config
       - python --version
       - python -m pip install --upgrade pip
-      - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
-      - apt-get update && apt-get -y install jq && pip install --upgrade awscli pytest
+      - yum install -y jq
+      - pip install --upgrade awscli pytest
 
   pre_build:
     commands:
       - TAG="$REPOSITORY_NAME.$REPOSITORY_BRANCH.$ENVIRONMENT_NAME.$(date +%Y-%m-%d.%H.%M.%S).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
       - sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' simple_jwt_api.yml
       - $(aws ecr get-login --no-include-email)
-      - echo `ls -l`
       - pip install -r requirements.txt
 
   build:
@@ -44,8 +43,6 @@ phases:
   post_build:
     commands:
       - docker push $REPOSITORY_URI:$TAG
-      - echo $EKS_CLUSTER_NAME
-      - echo $EKS_KUBECTL_ROLE_ARN
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
       - kubectl apply -f simple_jwt_api.yml
       - printf '[{"name":"simple_jwt_api","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build.json
