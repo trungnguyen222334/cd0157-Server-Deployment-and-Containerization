@@ -46,7 +46,7 @@ phases:
 
   post_build:
     commands:
-      - docker push $REPOSITORY_URI:$TAG
+      - docker push 851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api:latest
       - echo $EKS_CLUSTER_NAME
       - echo $EKS_KUBECTL_ROLE_ARN
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
