@@ -34,7 +34,7 @@ phases:
       - export TAG="${REPOSITORY_NAME}${REPOSITORY_BRANCH}${ENVIRONMENT_NAME}"
       - sed -i "s@CONTAINER_IMAGE@${REPOSITORY_URI}:${TAG}@" simple_jwt_api.yml
       - $(aws ecr get-login --no-include-email)
-      - export KUBECONFIG=$HOME/.kube/config
+      - export KUBECONFIG="$HOME/.kube/config"
       - echo "REPOSITORY_URI: $REPOSITORY_URI"
       - echo "TAG: $TAG"
       - echo "EKS_CLUSTER_NAME: $EKS_CLUSTER_NAME"
