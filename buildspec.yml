@@ -1,10 +1,9 @@
----
 version: 0.2
 
 phases:
   install:
     runtime-versions:
-      python: 3.9
+      python: 3.7
     commands:
       - echo 'about to call dockerd'
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
@@ -17,7 +16,7 @@ phases:
       - export PATH=$PWD/:$PATH
       - python --version
       - echo 'export PATH=$PWD/:$PATH' >> $HOME/.bashrc
-      - echo $(kubectl version --short --client)  # Note: corrected the syntax here
+      - echo "$(kubectl version --short --client)"
       - python -m pip install --upgrade --force pip
       - wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
       - apt-get update && apt-get -y install jq && pip install --upgrade awscli pytest
@@ -31,7 +30,7 @@ phases:
       - export REPOSITORY_URI="851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api"
       - export EKS_CLUSTER_NAME="flask-api"
       - export EKS_KUBECTL_ROLE_ARN="arn:aws:iam::851725552373:role/service-role/flask-role"
-      - export TAG="${REPOSITORY_NAME}${REPOSITORY_BRANCH}${ENVIRONMENT_NAME}"
+      - export TAG="latest"
       - sed -i "s@CONTAINER_IMAGE@${REPOSITORY_URI}:${TAG}@" simple_jwt_api.yml
       - $(aws ecr get-login --no-include-email)
       - export KUBECONFIG="$HOME/.kube/config"
@@ -39,7 +38,7 @@ phases:
       - echo "TAG: $TAG"
       - echo "EKS_CLUSTER_NAME: $EKS_CLUSTER_NAME"
       - echo "EKS_KUBECTL_ROLE_ARN: $EKS_KUBECTL_ROLE_ARN"
-      - echo $(ls -l)  # Note: corrected the syntax here
+      - ls -l
       - pip install -r requirements.txt
 
   build:
