@@ -49,7 +49,7 @@ phases:
     commands:
       - docker push $REPOSITORY_URI:$TAG
       - EKS_CLUSTER_NAME="flask-api"
-      - EKS_KUBECTL_ROLE_ARN="flask-role"
+      - EKS_KUBECTL_ROLE_ARN="arn:aws:iam::851725552373:role/service-role/flask-role"
       - echo $EKS_CLUSTER_NAME
       - echo $EKS_KUBECTL_ROLE_ARN
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
