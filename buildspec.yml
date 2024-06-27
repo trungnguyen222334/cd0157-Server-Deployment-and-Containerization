@@ -24,7 +24,13 @@ phases:
   pre_build:
     commands:
       - echo "Creating TAG"
-      - export TAG=$(echo "${REPOSITORY_NAME}-${REPOSITORY_BRANCH}-${ENVIRONMENT_NAME}-$(date +%Y%m%d-%H%M%S)-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)" | sed 's/[^a-zA-Z0-9_-]//g')
+      - export REPOSITORY_NAME="flask-api"
+      - export REPOSITORY_BRANCH="main"
+      - export ENVIRONMENT_NAME="production"
+      - export REPOSITORY_URI="851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api"
+      - export EKS_CLUSTER_NAME="flask-api"
+      - export EKS_KUBECTL_ROLE_ARN="arn:aws:iam::851725552373:role/service-role/flask-role"
+      - export TAG=$(echo "${REPOSITORY_NAME}${REPOSITORY_BRANCH}${ENVIRONMENT_NAME}$(date +%Y%m%d-%H%M%S)
       - sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' simple_jwt_api.yml
       - $(aws ecr get-login --no-include-email)
       - export KUBECONFIG=$HOME/.kube/config
