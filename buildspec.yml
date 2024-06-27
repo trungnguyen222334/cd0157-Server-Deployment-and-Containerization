@@ -4,7 +4,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.9
+      python: 3.7
     commands:
       - echo 'about to call dockerd'
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2&
@@ -23,16 +23,17 @@ phases:
       - apt-get update && apt-get -y install jq  && pip install --upgrade awscli pytest
   pre_build:
     commands:
-      - export TAG="${REPOSITORY_NAME}-${REPOSITORY_BRANCH}-${ENVIRONMENT_NAME}-$(date +%Y%m%d-%H%M%S)-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
+      - echo "Creating TAG"
+      - export TAG=$(echo "${REPOSITORY_NAME}-${REPOSITORY_BRANCH}-${ENVIRONMENT_NAME}-$(date +%Y%m%d-%H%M%S)-$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)" | sed 's/[^a-zA-Z0-9_-]//g')
       - sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' simple_jwt_api.yml
       - $(aws ecr get-login --no-include-email)
       - export KUBECONFIG=$HOME/.kube/config
       - echo `ls -l`
       - pip install -r requirements.txt
-      - echo $REPOSITORY_URI
-      - echo $TAG
-      - echo $EKS_CLUSTER_NAME
-      - echo $EKS_KUBECTL_ROLE_ARN
+      - echo "REPOSITORY_URI: $REPOSITORY_URI"
+      - echo "TAG: $TAG"
+      - echo "EKS_CLUSTER_NAME: $EKS_CLUSTER_NAME"
+      - echo "EKS_KUBECTL_ROLE_ARN: $EKS_KUBECTL_ROLE_ARN"
   build:
     commands:
       - docker build --tag $REPOSITORY_URI:$TAG .
@@ -40,8 +41,8 @@ phases:
   post_build:
     commands:
       - docker push $REPOSITORY_URI:$TAG
-      - echo $EKS_CLUSTER_NAME
-      - echo $EKS_KUBECTL_ROLE_ARN
+      - echo "EKS_CLUSTER_NAME: $EKS_CLUSTER_NAME"
+      - echo "EKS_KUBECTL_ROLE_ARN: $EKS_KUBECTL_ROLE_ARN"
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN
       - kubectl apply -f simple_jwt_api.yml
       - printf '[{"name":"simple_jwt_api","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build.json
