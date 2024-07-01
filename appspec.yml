@@ -3,16 +3,65 @@ os: linux
 files:
   - source: /
     destination: /home/ubuntu/deploy
+
 hooks:
   BeforeInstall:
-    - location: scripts/install_dependencies.sh
+    - location: /bin/bash
       runas: root
+      timeout: 300
+      script: |
+        # Install dependencies and setup environment
+        echo 'about to call dockerd'
+        nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
+        timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+        curl -sS -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-07-26/bin/linux/amd64/aws-iam-authenticator
+        curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.27.9/2024-01-04/bin/linux/amd64/kubectl
+        curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.27.9/2024-01-04/bin/linux/amd64/kubectl.sha256
+        sha256sum -c kubectl.sha256
+        chmod +x ./kubectl ./aws-iam-authenticator
+        export PATH=$PWD/:$PATH
+        python --version
+        echo 'export PATH=$PWD/:$PATH' >> $HOME/.bashrc
+        kubectl version --short --client
+        python -m pip install --upgrade --force pip
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+        apt-get update && apt-get -y install jq && pip install --upgrade awscli pytest
+
   AfterInstall:
-    - location: scripts/configure_server.sh
+    - location: /bin/bash
       runas: root
+      timeout: 300
+      script: |
+        # Pre-build commands
+        TAG="latest"
+        REPOSITORY_URI="851725552373.dkr.ecr.ap-southeast-2.amazonaws.com/flask-api"
+        sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' /home/ubuntu/deploy/simple_jwt_api.yml
+        $(aws ecr get-login --no-include-email)
+        export KUBECONFIG=$HOME/.kube/config
+        ls -l /home/ubuntu/deploy
+        pip install -r /home/ubuntu/deploy/requirements.txt
+
   ApplicationStart:
-    - location: scripts/start_server.sh
+    - location: /bin/bash
       runas: root
+      timeout: 300
+      script: |
+        # Build and push the Docker image
+        docker build --tag $REPOSITORY_URI:$TAG /home/ubuntu/deploy
+        docker push $REPOSITORY_URI:$TAG
+
   ValidateService:
-    - location: scripts/validate_service.sh
+    - location: /bin/bash
       runas: root
+      timeout: 300
+      script: |
+        # Post-build commands and Kubernetes deployment
+        EKS_CLUSTER_NAME="flask-api"
+        EKS_KUBECTL_ROLE_ARN="arn:aws:iam::851725552373:role/service-role/flask-role"
+        echo $EKS_CLUSTER_NAME
+        echo $EKS_KUBECTL_ROLE_ARN
+        aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --role-arn $EKS_KUBECTL_ROLE_ARN --kubeconfig $KUBECONFIG
+        cat $KUBECONFIG
+        kubectl get nodes
+        kubectl apply -f /home/ubuntu/deploy/simple_jwt_api.yml
+        printf '[{"name":"simple_jwt_api","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > /home/ubuntu/deploy/build.json
